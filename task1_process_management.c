@@ -5,6 +5,11 @@
 #include <sys/wait.h>
 #include <pthread.h>
 #define THREADS 3
+#define UPDATES 5
+/*shared variable access by all threads*/
+int sharedCounter =0;
+/*mutex to protect*/
+pthread_mutex_t lock;
 /* parent and child process creation */
 void process_demo(){
 	printf("Process Creation\n");
@@ -30,15 +35,26 @@ void process_demo(){
 /*function performed by each worker thread*/
 void *worker_task(void *arg){
 	int id = *(int *)arg;
-	printf("Thread %d is running.\n", id);
+/*update the counter 3 times*/
+	for(int i = 0;i<UPDATES;i++){
+		pthread_mutex_lock(&lock);
+  	/*critical section*/
+		sharedCounter++;
+		printf("thread %d updated counter to %d\n",id,sharedCounter);
+		/*unlocking mutex to enter another thread*/
+		pthread_mutex_unlock(&lock);
+}
+
 	return NULL;
 }
 /*three worker thread*/
 void run_thread(){
 	pthread_t threads[THREADS];
 	int id[THREADS];
-	printf("thread management\n");
-	/*three threads creating*/
+	printf("thread management and synchronization\n");
+	/*initialize mutex before thread start*/
+	pthread_mutex_init(&lock, NULL);
+	/*worker thread*/
 	 for (int i = 0; i < THREADS; i++) {
         id[i] = i + 1;
 
@@ -54,8 +70,12 @@ void run_thread(){
     for (int i = 0; i < THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
+   /*destroying mutex when thread complte*/
+   pthread_mutex_destroy(&lock);
+   /*display result*/
+   printf("final counter = %d\n",sharedCounter);
 
-    printf("all worker threads completed.\n");
+    printf("expected counter  = %d\n",THREADS*UPDATES);
 }
 
 /* main function*/
