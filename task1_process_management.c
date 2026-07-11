@@ -8,13 +8,21 @@
 #define THREADS 3
 #define TRANSACTIONS 5
 #define DEPOSIT_AMOUNT 100
-#define PROC 4
+#define JOBS 4
 #define QUANTUM 2
 
 /*structure used to pass worker details to each thread */
 struct Worker {
 int id;
 char role[30];
+};
+/* structure for bank transaction jobs */
+struct Job {
+int id;
+char name[30];
+int burstTime;
+int remainingTime;
+int completionTime;
 };
 /*shared bank account balance */
 int accountBalance = 1000;
@@ -83,41 +91,43 @@ printf("Expected Balance = Rs. %d\n",1000+(THREADS*TRANSACTIONS*DEPOSIT_AMOUNT))
 }
 /*round robin scheduling*/
 void round_robin(){
-/*burst time of four process i.e. p1,p2,p3,p4*/
-int burst[PROC]={5,8,6,3};
-/*remained burst time*/
-int remaining[PROC];
+struct Job jobs[JOBS] = {
+{1, "Fund Transfer", 5, 5, 0},{2, "Bill Payment", 8, 8, 0},{3, "Cash Deposit", 6, 6, 0},{4, "Balance Update", 3, 3, 0}
+};
 int time =0;
 int completed=0;
-/*copying burst time into remaining times*/
-for (int i=0;i<PROC; i++){
-remaining[i]=burst[i];
-}
+
 printf("\n Round Robin Scheduling Algorithm \n");
-printf("Time Quantum = %d\n" ,QUANTUM);
+printf("Time Quantum = %d CPU units\n" ,QUANTUM);
 /*THE proccess continues untill all process finishes*/
-while(completed<PROC){
-for(int i=0;i<PROC;i++){
-if(remaining[i]>0){
+while(completed<JOBS){
+for(int i=0;i<JOBS;i++){
+if(jobs[i].remainingTime>0){
 /*run for quantum or remained time for the process*/
 int run;
-if(remaining[i] > QUANTUM){
+if(jobs[i].remainingTime > QUANTUM){
 run = QUANTUM;
 }else{
-run= remaining[i];
+run= jobs[i].remainingTime;
 }
-printf("Time %d - %d: P%d running\n",time,time+run,i+1);
+printf("Time %d - %d:Job %d (%s) running\n",time,time+run,jobs[i].id,jobs[i].name);
 time=time+run;
-remaining[i]=remaining[i]-run;
+jobs[i].remainingTime=jobs[i].remainingTime-run;
 /*check  for process finished or not */
-if(remaining[i]==0){
-printf("P%d completed at time %d\n",i+1,time);
+if(jobs[i].remainingTime==0)
+{
+jobs[i].completionTime=time;
 completed++;
+printf("Job %d (%s) completed at time %d\n",jobs[i].id,jobs[i].name,jobs[i].completionTime);
+
 }
 }
 }
 }
-printf("All processes completed.\n");
+printf("Job burst completed.\n");
+for (int i = 0; i < JOBS; i++) {
+printf("J%d  %d  %d\n",jobs[i].id,jobs[i].burstTime,jobs[i].completionTime);
+}
 }
 
 /* main function*/
