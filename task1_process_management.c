@@ -13,6 +13,11 @@
 int sharedCounter =0;
 /*mutex to protect*/
 pthread_mutex_t lock;
+/*structure used to pass worker details to each thread */
+struct Worker {
+int id;
+char role[30];
+};
 /* parent and child process creation,i.e. bank server creates a customer session process */
 void process_demo(){
 	printf("Bank Server Process Creation \n");
@@ -35,51 +40,33 @@ void process_demo(){
 	wait(NULL);
 	printf("Bank server waited for customer session to finish.\n");
 }
-/*function performed by each worker thread*/
-void *worker_task(void *arg){
-	int id = *(int *)arg;
+/*function performed by each transaction worker*/
+void *transaction_worker(void *arg){
+struct Worker *worker=(struct Worker *)arg;
+printf("Worker %d (%s) is processing a transaction.\n",worker->id,worker->role);
+return NULL;
+}
+/*create and manages 3 worker thread*/
+void run_threads(){
+pthread_t workers[THREADS];
+struct Worker workerData[THREADS] ={
+{1, "Deposit Handler"},
+{2, "Payment Handler"},
+{3, "Transfer Handler"}
+};
+printf("Bank Transaction Worker Thread \n");
+
 /*update the counter 3 times*/
-	for(int i = 0;i<UPDATES;i++){
-		pthread_mutex_lock(&lock);
-  	/*critical section*/
-		sharedCounter++;
-		printf("thread %d updated counter to %d\n",id,sharedCounter);
-		/*unlocking mutex to enter another thread*/
-		pthread_mutex_unlock(&lock);
+	for(int i = 0;i<THREADS;i++){
+		pthread_create(&workers[i],NULL, transaction_worker,&workerData[i]);
+
+}
+for(int i = 0; i < THREADS; i++) {
+pthread_join(workers[i], NULL);
+}
+printf("All transaction workers completed.\n");
 }
 
-	return NULL;
-}
-/*three worker thread*/
-void run_thread(){
-	pthread_t threads[THREADS];
-	int id[THREADS];
-	printf("thread management and synchronization\n");
-	/*initialize mutex before thread start*/
-	pthread_mutex_init(&lock, NULL);
-	/*worker thread*/
-	 for (int i = 0; i < THREADS; i++) {
-        id[i] = i + 1;
-
-        pthread_create(
-            &threads[i],
-            NULL,
-            worker_task,
-            &id[i]
-        );
-    }
-
-    /* waiting for all threads to finish via pthread_join */
-    for (int i = 0; i < THREADS; i++) {
-        pthread_join(threads[i], NULL);
-    }
-   /*destroying mutex when thread complte*/
-   pthread_mutex_destroy(&lock);
-   /*display result*/
-   printf("final counter = %d\n",sharedCounter);
-
-    printf("expected counter  = %d\n",THREADS*UPDATES);
-}
 /*round robin scheduling*/
 void round_robin(){
 /*burst time of four process i.e. p1,p2,p3,p4*/
@@ -122,7 +109,7 @@ printf("All processes completed.\n");
 /* main function*/
 int main(){
 	process_demo();
-	run_thread();
+	run_threads();
 	round_robin();
 	return 0;
 }
