@@ -6,18 +6,20 @@
 #include <sys/wait.h>
 #include <pthread.h>
 #define THREADS 3
-#define UPDATES 5
+#define TRANSACTIONS 5
+#define DEPOSIT_AMOUNT 100
 #define PROC 4
 #define QUANTUM 2
-/*shared variable access by all threads*/
-int sharedCounter =0;
-/*mutex to protect*/
-pthread_mutex_t lock;
+
 /*structure used to pass worker details to each thread */
 struct Worker {
 int id;
 char role[30];
 };
+/*shared bank account balance */
+int accountBalance = 1000;
+/*MUTEXx protect the shared account balance */
+pthread_mutex_t accountLock;
 /* parent and child process creation,i.e. bank server creates a customer session process */
 void process_demo(){
 	printf("Bank Server Process Creation \n");
@@ -40,33 +42,45 @@ void process_demo(){
 	wait(NULL);
 	printf("Bank server waited for customer session to finish.\n");
 }
-/*function performed by each transaction worker*/
-void *transaction_worker(void *arg){
-struct Worker *worker=(struct Worker *)arg;
-printf("Worker %d (%s) is processing a transaction.\n",worker->id,worker->role);
+/* Each worker updates the shared account balance safely */
+void *transaction_worker(void *arg) {
+struct Worker *worker = (struct Worker *)arg;
+for (int i = 0; i < TRANSACTIONS; i++) {
+/* lock before updating shared balance */
+pthread_mutex_lock(&accountLock);
+int oldBalance = accountBalance;
+accountBalance = accountBalance+DEPOSIT_AMOUNT;
+printf("Worker %d (%s): Rs. %d -> Rs. %d\n",worker->id,worker->role,oldBalance,accountBalance);
+/* unlock immediately after update */
+pthread_mutex_unlock(&accountLock);
+}
 return NULL;
 }
-/*create and manages 3 worker thread*/
-void run_threads(){
+/*creates and manages 3 transaction workers */
+void run_threads() {
 pthread_t workers[THREADS];
-struct Worker workerData[THREADS] ={
+struct Worker workerData[THREADS] = {
 {1, "Deposit Handler"},
 {2, "Payment Handler"},
 {3, "Transfer Handler"}
 };
-printf("Bank Transaction Worker Thread \n");
-
-/*update the counter 3 times*/
-	for(int i = 0;i<THREADS;i++){
-		pthread_create(&workers[i],NULL, transaction_worker,&workerData[i]);
-
+printf("\n Bank Transaction Worker Threads \n");
+printf("Initial Balance = Rs. %d\n", accountBalance);
+/* initialize mutex */
+pthread_mutex_init(&accountLock, NULL);
+/* create 3 worker threads */
+for (int i = 0; i < THREADS; i++) {
+        pthread_create(&workers[i],NULL,transaction_worker,&workerData[i]);
 }
+/* wait for all threads to finish */
 for(int i = 0; i < THREADS; i++) {
 pthread_join(workers[i], NULL);
 }
-printf("All transaction workers completed.\n");
+/* destroy mutex */
+pthread_mutex_destroy(&accountLock);
+printf("Final Balance = Rs. %d\n", accountBalance);
+printf("Expected Balance = Rs. %d\n",1000+(THREADS*TRANSACTIONS*DEPOSIT_AMOUNT));
 }
-
 /*round robin scheduling*/
 void round_robin(){
 /*burst time of four process i.e. p1,p2,p3,p4*/
