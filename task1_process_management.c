@@ -81,6 +81,7 @@ for (int i = 0; i < THREADS; i++) {
         pthread_create(&workers[i],NULL,transaction_worker,&workerData[i]);
 }
 /* wait for all threads to finish */
+
 for(int i = 0; i < THREADS; i++) {
 pthread_join(workers[i], NULL);
 }
@@ -129,11 +130,20 @@ for (int i = 0; i < JOBS; i++) {
 printf("J%d  %d  %d\n",jobs[i].id,jobs[i].burstTime,jobs[i].completionTime);
 }
 }
+/* deadlock prevention explanation */
+void deadlock_prevention() {
+printf("\nDeadlock Prevention\n");
+printf("Only one mutex is used to protect the bank balance.\n");
+printf("The mutex is unlocked immediately after each update.\n");
+printf("No worker holds one lock while waiting for another lock.\n");
+printf("Circular wait is avoided, so deadlock is prevented.\n");
+}
 
 /* main function*/
 int main(){
 	process_demo();
 	run_threads();
 	round_robin();
+	deadlock_prevention();
 	return 0;
 }
