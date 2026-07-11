@@ -1,3 +1,4 @@
+/*Task 1 : Bank Server Process Creation*/
 /* Process creation */
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,27 +13,27 @@
 int sharedCounter =0;
 /*mutex to protect*/
 pthread_mutex_t lock;
-/* parent and child process creation */
+/* parent and child process creation,i.e. bank server creates a customer session process */
 void process_demo(){
-	printf("Process Creation\n");
-	printf("Parent PID : %d\n",getpid());
+	printf("Bank Server Process Creation \n");
+	printf("Main Bank Server PID : %d\n",getpid());
 	/* preventing duplicate output after fork */
 	fflush(stdout);
 	pid_t pid = fork(); //create child
 	if(pid < 0){
-		printf("fork failed");
+		printf("Customer session process creation failed.\n");
 		exit(1);
 }
 	/* child process creation*/
 	if(pid == 0){
-		printf("Child process created successfully.");
-		printf("child PID : %d\n",getpid());
-		printf("Parent PID: %d\n",getppid());
+		printf("Customer session process created successfully.\n");
+		printf("Customer Session PID : %d\n",getpid());
+		printf("Bank Server  PID: %d\n",getppid());
 		exit(0);
 }
 	/* parent waits for child demonstration*/
 	wait(NULL);
-	printf("Parent waited for child process.\n");
+	printf("Bank server waited for customer session to finish.\n");
 }
 /*function performed by each worker thread*/
 void *worker_task(void *arg){
