@@ -60,6 +60,70 @@ printf("hits: %d\n", hits);
 printf("hit ratio: %.2f\n", (float)hits / REQUESTS);
 printf("miss ratio: %.2f\n", (float)pageFaults / REQUESTS);
 }
+/*LRU frames*/
+int find_lru(int lastUsed[]){
+	int minIndex =0;
+	for(int i=1; i<FRAMES; i++){
+		if(lastUsed[i]<lastUsed[minIndex]){
+			minIndex =i;
+}
+}
+return minIndex;
+}
+/*LRU replaces page that was used least recently*/
+void lru_simulation(int requests[]){
+	int frames[FRAMES];
+	int lastUsed[FRAMES];
+	int hits=0;
+	int pageFaults=0;
+ 	for(int i=0;i<FRAMES;i++){
+		frames[i]=-1;
+		lastUsed[i]=-1;
+}
+	printf("\n LRU page replacement \n");
+	printf("physical memory frames: %d\n",FRAMES);
+	for(int time=0;time<REQUESTS;time++){
+		int page=requests[time];
+		int position=find_page(frames, page);
+		printf("\n request %d: hospital page %d\n", time+1,page);
+		if(position !=-1){
+			hits++;
+			lastUsed[position] = time;
+			printf("result: hit, page already in memory.\n");
+}else{
+			pageFaults++;
+			printf("result: page fault, loading page.\n");
+			 int empty = -1;
+			/*CHECK IF ANY FRAM IS EMPTY*/
+			for(int i=0;i<FRAMES;i++){
+				if(frames[i]==-1){
+					empty=i;
+					break;
+}
+}
+			 if (empty != -1) {
+                                frames[empty] = page;
+                                lastUsed[empty] = time;
+
+}else{
+			int replaceIndex = find_lru(lastUsed);
+			printf("replaced page %d using lru.\n",frames[replaceIndex]);
+			frames[replaceIndex] = page;
+                        lastUsed[replaceIndex] = time;
+
+}
+}
+show_frames(frames);
+}
+printf("\n lru result\n");
+printf("total requests: %d\n", REQUESTS);
+printf("hits: %d\n", hits);
+printf("page faults: %d\n", pageFaults);
+printf("hit ratio: %.2f\n", (float)hits / REQUESTS);
+printf("miss ratio: %.2f\n", (float)pageFaults / REQUESTS);
+}
+
+
 int main(){
 int pageSize;
 int logicalAddress;
@@ -93,5 +157,6 @@ int requests[REQUESTS]={
 1,2,3,3,4,5,2,3,6,2,7,3
 };
 fifo_simulation(requests);
+lru_simulation(requests);
 return 0;
 }
