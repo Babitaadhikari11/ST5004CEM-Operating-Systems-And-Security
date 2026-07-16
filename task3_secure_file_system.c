@@ -1,6 +1,7 @@
 /*task 3 hospital patient file management system*/
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #define MAX_USERS 3
 /* stores login details and hospital user role */
 struct User {
@@ -8,6 +9,7 @@ struct User {
         char password[30];
         char role[20];
 };
+/*SUBTASK: USER AUTHENTICATION*/
 /* checks username and password entered by user */
 int login(struct User users[], struct User *currentUser) {
         char username[30];
@@ -32,6 +34,21 @@ int login(struct User users[], struct User *currentUser) {
       printf("\nlogin failed. invalid username or password.\n");
         return 0;
 }
+/*SUB TASK: AUDIT LOGGING*/
+/*records user activity in audit log file*/
+void write_log(char username[],char action[],char filename[]){ /*TAKES 3 values for username action and what file was affected*/
+        FILE *logFile; /*pointer */
+        time_t currentTime;
+        logFile=fopen("audit_log.txt", "a");/*open audit_log.txt*/
+        if(logFile== NULL){
+                printf("audit log could not be opened.\n");
+                return;
+        }
+        time(&currentTime);
+	/*this writes log record into audit_log text ie. username, action perfomed on which file*/
+        fprintf(logFile, "user: %s | action: %s | file: %s | time: %s",username, action, filename, ctime(&currentTime));
+        fclose(logFile);/*file close*/
+}
 int main(){
         struct User users[MAX_USERS] = {{"admin", "admin123", "admin"},
                 {"doctor", "doctor123", "doctor"},
@@ -45,6 +62,8 @@ int main(){
 
                 return 0;
         }
+	/*record scessfull logins*/
+	write_log(currentUser.username, "logged in", "system");
         printf("\nwelcome to hospital patient file management system.\n");
         return 0;
 }
