@@ -49,6 +49,26 @@ void write_log(char username[],char action[],char filename[]){ /*TAKES 3 values 
         fprintf(logFile, "user: %s | action: %s | file: %s | time: %s",username, action, filename, ctime(&currentTime));
         fclose(logFile);/*file close*/
 }
+/*SUB TASK: FILE CREATION*/
+/* creates a new hospital patient file */
+void create_file(struct User currentUser) {/*recieve current user*/
+        FILE *file;
+        char filename[50]; /*for file name*/
+        printf("\n create hospital file \n");
+        printf("enter file name to create: ");
+        scanf("%s", filename);
+        file =fopen(filename, "w");
+        if (file== NULL) {
+                printf("file could not be created.\n");
+                write_log(currentUser.username, "failed to create file", filename);
+                return;
+     }
+        fprintf(file, "hospital patient file created by %s\n",
+                currentUser.username);
+        fclose(file);
+        printf("file created successfully.\n");
+        write_log(currentUser.username, "created file", filename);
+}
 int main(){
         struct User users[MAX_USERS] = {{"admin", "admin123", "admin"},
                 {"doctor", "doctor123", "doctor"},
@@ -65,5 +85,7 @@ int main(){
 	/*record scessfull logins*/
 	write_log(currentUser.username, "logged in", "system");
         printf("\nwelcome to hospital patient file management system.\n");
+	/*logged in user can create file*/
+	create_file(currentUser);
         return 0;
 }
