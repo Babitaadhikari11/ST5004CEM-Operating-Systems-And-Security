@@ -114,6 +114,21 @@ void read_file(struct User currentUser) {
         fclose(file);
         write_log(currentUser.username, "read file", filename);
 }
+/*SUB TASK: FILE DELETION*/
+/* deletes an existing hospital file */
+void delete_file(struct User currentUser) {
+        char filename[50];
+        printf("\ndelete hospital file \n");
+        printf("enter file name to delete: ");
+        scanf("%s", filename);
+        if (remove(filename) == 0) {
+                printf("file deleted successfully.\n");
+                write_log(currentUser.username, "deleted file", filename);
+        } else {
+                printf("file could not be deleted or does not exist.\n");
+                write_log(currentUser.username, "failed to delete file", filename);
+        }
+}
 int main(){
         struct User users[MAX_USERS] = {{"admin", "admin123", "admin"},
                 {"doctor", "doctor123", "doctor"},
@@ -135,5 +150,6 @@ int main(){
 	write_file(currentUser);
 	/*READING FILE CONTENT*/
 	read_file(currentUser);
+	delete_file(currentUser);
         return 0;
 }
