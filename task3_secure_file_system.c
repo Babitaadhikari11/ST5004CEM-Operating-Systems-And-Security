@@ -91,6 +91,29 @@ void write_file(struct User currentUser) {
         printf("file written successfully.\n");
         write_log(currentUser.username, "wrote to file", filename);
 }
+/*SUB TASK: FILE READING*/
+/* reads and displays hospital file content */
+void read_file(struct User currentUser) {
+        FILE *file;
+        char filename[50];
+        int ch; /* FOR STORING one character at a time*/
+        printf("\n read hospital file\n");
+        printf("enter file name to read: ");
+        scanf("%s", filename);
+        file = fopen(filename, "r");/*r enables read mode*/
+        if (file == NULL) {
+                printf("file could not be opened or does not exist.\n");
+                write_log(currentUser.username, "failed to read file", filename);
+              return;
+        }
+        printf("\n file content \n");
+        while ((ch = fgetc(file)) != EOF) { /*EOF means end of file*/
+                printf("%c", ch);
+        }
+        printf("\nend of file \n");
+        fclose(file);
+        write_log(currentUser.username, "read file", filename);
+}
 int main(){
         struct User users[MAX_USERS] = {{"admin", "admin123", "admin"},
                 {"doctor", "doctor123", "doctor"},
@@ -110,5 +133,7 @@ int main(){
 	/*logged in user can create file*/
 	create_file(currentUser);
 	write_file(currentUser);
+	/*READING FILE CONTENT*/
+	read_file(currentUser);
         return 0;
 }
