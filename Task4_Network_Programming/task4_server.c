@@ -8,18 +8,101 @@
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
+#define TOTAL_PATIENTS 3
+/* stores sample hospital patient records */
+struct Patient {
+        int id;
+        char name[50];
+        char condition[50];
+        char labStatus[80];
+};
+/* sample patient data used by hospital server */
+struct Patient patients[TOTAL_PATIENTS] = {
+        {101, "ramesh thapa", "fever", "blood test pending"},
+        {102, "sita gurung", "fracture", "x-ray completed"},
+        {103, "arjun kc", "breathing problem", "oxygen level test urgent"}
+};
+/* searches patient details using patient id */
+void find_patient(int id, char response[]) {
+        int i;
+        for (i = 0; i < TOTAL_PATIENTS; i++) {
+                if (patients[i].id == id) {
+                        sprintf(response,
+                                "patient %d found: name %s, condition %s",
+                                patients[i].id,
+                                patients[i].name,
+                                patients[i].condition);
+                        return;
+                }
+        }
+        strcpy(response, "patient id not found");
+}
 
+
+/* searches lab status using patient id */
+void find_lab(int id, char response[]) {
+        int i;
+        for (i = 0; i < TOTAL_PATIENTS; i++) {
+                if (patients[i].id == id) {
+                        sprintf(response,
+                                "lab status for patient %d: %s",
+                                patients[i].id,
+                                patients[i].labStatus);
+                        return;
+                }
+        }
+        strcpy(response, "lab record not found for this patient id");
+}
+/* processes client command and prepares server response */
+void process_request(char request[], char response[]) {
+        int patientId;
+        char alertMessage[BUFFER_SIZE];
+        /* show available commands */
+        if (strncmp(request, "HELP", 4) == 0) {
+                strcpy(response,
+                       "commands: PATIENT id, LAB id, BED, ALERT message, EXIT");
+        }
+        /* handle patient information request */
+        else if (sscanf(request, "PATIENT %d", &patientId) == 1) {
+                find_patient(patientId, response);
+        }
+        /* handle lab status request */
+        else if (sscanf(request, "LAB %d", &patientId) == 1) {
+                find_lab(patientId, response);
+        }
+        /* handle bed availability request */
+        else if (strncmp(request, "BED", 3) == 0) {
+                strcpy(response,
+                       "beds available: emergency 4, icu 2, general 8");
+        }
+        /* handle emergency alert message */
+        else if (sscanf(request, "ALERT %[^\n]", alertMessage) == 1) {
+                sprintf(response,
+                        "emergency alert received: %s",
+                        alertMessage);
+        }
+
+        /* handle exit command */
+        else if (strncmp(request, "EXIT", 4) == 0) {
+                strcpy(response, "goodbye. connection closed");
+        }
+        /* handle invalid command */
+        else {
+                strcpy(response,
+                       "invalid command. type HELP to see valid commands");
+        }
+}
 int main() {
         int serverSocket;
         int clientSocket;
         struct sockaddr_in serverAddress;
         struct sockaddr_in clientAddress;
         socklen_t clientLength;
-        char buffer[BUFFER_SIZE];
-
+       /* char buffer[BUFFER_SIZE];*/
+	char request[BUFFER_SIZE];
+        char response[BUFFER_SIZE];
         /* create socket for server */
         serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-
         if (serverSocket < 0) {
                 printf("socket creation failed.\n");
                 return 1;
@@ -66,20 +149,43 @@ int main() {
         }
 
         printf("client connected successfully.\n");
+	/* keep receiving commands until client exits */
+        while (1) {
+                memset(request, 0, BUFFER_SIZE);
+                memset(response, 0, BUFFER_SIZE);
+                /* receive request from client */
+                if (recv(clientSocket, request, BUFFER_SIZE, 0) <= 0) {
+                        printf("client disconnected.\n");
+                        break;
+                }
+                /* remove new line from input */
+                request[strcspn(request, "\n")] = '\0';
+                printf("client request: %s\n", request);
+                /* process command and prepare response */
+                process_request(request, response);
+                /* send response back to client */
+                send(clientSocket, response, strlen(response), 0);
+                printf("response sent to client.\n");
+                /* close connection if client sends exit */
+                if (strncmp(request, "EXIT", 4) == 0) {
+                        break;
+                }
+        }
 
-        /* receive message from client */
+        /* receive message from client 
         memset(buffer, 0, BUFFER_SIZE);
         recv(clientSocket, buffer, BUFFER_SIZE, 0);
 
         printf("client request: %s\n", buffer);
 
-        /* send response to client */
+        /* send response to client 
         send(clientSocket,
              "message received by hospital server",
              strlen("message received by hospital server"),
              0);
 
         printf("response sent to client.\n");
+*/
 
         close(clientSocket);
         close(serverSocket);
