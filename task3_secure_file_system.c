@@ -13,6 +13,8 @@ struct User {
         int canWrite;
         int canRead;
         int canDelete;
+	/*ENCRYPTION permission*/
+	int canEncrypt;
 };
 /*SUBTASK: USER AUTHENTICATION*/
 /* checks username and password entered by user */
@@ -158,11 +160,63 @@ void delete_file(struct User currentUser) {
                 write_log(currentUser.username, "failed to delete file", filename);
         }
 }
+/*SUB TASK: ENCRYTPION.DECRITPION*/
+/* encrypts or decrypts a hospital file using simple xor method */
+void encrypt_decrypt_file(struct User currentUser) {
+        FILE *file;
+        char filename[50];
+        char data[1000];
+        int key = 7; /*KEY USED FOR ENCRYption and decryption*/
+        int i = 0;/*tracking current position*/
+        int ch;
+        printf("\n encrypt or decrypt hospital file \n");
+        /* checks if current user is allowed to encrypt or decrypt files */
+        if (currentUser.canEncrypt == 0) {
+                printf("permission denied. you cannot encrypt or decrypt files.\n");
+                write_log(currentUser.username,
+                          "permission denied encrypt or decrypt file",
+                          "none");
+                return;
+        }
+        printf("enter file name to encrypt or decrypt: ");
+        scanf("%s", filename);
+        file = fopen(filename, "r");
+        if (file == NULL) {
+                printf("file could not be opened or does not exist.\n");
+                write_log(currentUser.username,
+                          "failed to encrypt or decrypt file",
+                          filename);
+                return;
+        }
+        /* reads file and changes each character using xor key */
+        while ((ch = fgetc(file)) != EOF && i < 999) {
+                data[i] = ch ^ key;
+                i++;
+        }
+        data[i] = '\0';
+        fclose(file);
+        file = fopen(filename, "w");
+        if (file == NULL) {
+                printf("file could not be opened for saving.\n");
+                write_log(currentUser.username,
+                          "failed to save encrypted or decrypted file",
+                          filename);
+                return;
+        }
+        fprintf(file, "%s", data);
+        fclose(file);
+        printf("file encryption or decryption completed.\n");
+        write_log(currentUser.username,
+                  "encrypted or decrypted file",
+                  filename);
+}
+
 int main(){
-        struct User users[MAX_USERS] = {{"admin", "admin123", "admin",1,1,1,1},
+/*encryptiiona decription added for doctor, nurse and admin*/
+        struct User users[MAX_USERS] = {{"admin", "admin123", "admin",1,1,1,1,1},
 	/*permission 1=allowed, 0 =not allowed*/
-                {"doctor", "doctor123", "doctor",1,1,1,0},
-                {"nurse", "nurse123", "nurse",0,0,1,0}
+                {"doctor", "doctor123", "doctor",1,1,1,0,1},
+                {"nurse", "nurse123", "nurse",0,0,1,0,0}
         };
         struct User currentUser;
         int loggedIn;
@@ -181,5 +235,18 @@ int main(){
 	/*READING FILE CONTENT*/
 	read_file(currentUser);
 	delete_file(currentUser);
+	/* allows logged in user to encrypt or decrypt a hospital file */
+	encrypt_decrypt_file(currentUser);
+	/* read file after encryption */
+
+read_file(currentUser);
+
+/* decrypt the same hospital file second time */
+
+encrypt_decrypt_file(currentUser);
+
+/* read file again after decryption */
+
+read_file(currentUser);
         return 0;
 }
