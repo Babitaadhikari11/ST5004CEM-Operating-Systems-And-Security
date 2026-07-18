@@ -5,7 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-
+#include <sys/wait.h>
 #define PORT 8080
 #define BUFFER_SIZE 1024
 #define TOTAL_PATIENTS 3
@@ -164,10 +164,46 @@ void process_request(char request[], char response[], int *loggedIn, char role[]
                        "invalid command. type HELP to see valid commands");
         }
 }
+/*  handles one connected client */
+void handle_client(int clientSocket) {
+       
+        printf("child process handling client. pid: %d\n", getpid());
+
+        while (1) {
+                memset(request, 0, BUFFER_SIZE);
+                memset(response, 0, BUFFER_SIZE);
+
+                if (recv(clientSocket, request, BUFFER_SIZE, 0) <= 0) {
+                        printf("client disconnected. pid: %d\n", getpid());
+                        break;
+                }
+
+                request[strcspn(request, "\n")] = '\0';
+
+                printf("client request from pid %d: %s\n", getpid(), request);
+
+                process_request(request, response, &loggedIn, role);
+
+                if (send(clientSocket, response, strlen(response), 0) < 0) {
+                        printf("failed to send response. pid: %d\n", getpid());
+                        break;
+                }
+
+                printf("response sent by pid %d.\n", getpid());
+
+                if (strncmp(request, "EXIT", 4) == 0) {
+                        break;
+                }
+        }
+
+        close(clientSocket);
+        printf("client connection closed by pid: %d\n", getpid());
+}
 int main() {
         int serverSocket;
         int clientSocket;
-	/* added: stores login status of connected client */
+	pid_t pid;
+	/*  stores login status of connected client */
         int loggedIn = 0;
         struct sockaddr_in serverAddress;
         struct sockaddr_in clientAddress;
@@ -175,7 +211,7 @@ int main() {
        /* char buffer[BUFFER_SIZE];*/
 	char request[BUFFER_SIZE];
         char response[BUFFER_SIZE];
-	/* added: stores role after successful login */
+	/*  stores role after successful login */
         char role[30] = "guest";
         /* create socket for server */
         serverSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -211,45 +247,41 @@ int main() {
 
         printf("hospital server is waiting for client connection...\n");
 
+        /*  keep accepting multiple clients */
+while (1) {
         clientLength = sizeof(clientAddress);
 
-        /* accept client connection */
         clientSocket = accept(serverSocket,
                               (struct sockaddr *)&clientAddress,
                               &clientLength);
 
         if (clientSocket < 0) {
                 printf("client connection failed.\n");
+                continue;
+        }
+
+        printf("new client connected.\n");
+
+        /*  create child process for each client */
+        pid = fork();
+
+        if (pid < 0) {
+                printf("fork failed.\n");
+                close(clientSocket);
+                continue;
+        }
+
+        if (pid == 0) {
+                /*  child handles one client */
                 close(serverSocket);
-                return 1;
+                handle_client(clientSocket);
+                exit(0);
+        } else {
+                /*  parent keeps accepting more clients */
+                close(clientSocket);
+                waitpid(-1, NULL, WNOHANG);
         }
-
-        printf("client connected successfully.\n");
-	/* keep receiving commands until client exits */
-        while (1) {
-                memset(request, 0, BUFFER_SIZE);
-                memset(response, 0, BUFFER_SIZE);
-                /* receive request from client */
-                if (recv(clientSocket, request, BUFFER_SIZE, 0) <= 0) {
-                        printf("client disconnected.\n");
-                        break;
-                }
-                /* remove new line from input */
-                request[strcspn(request, "\n")] = '\0';
-                printf("client request: %s\n", request);
-		/* added: process request with login status and role */
-
-                process_request(request, response, &loggedIn, role);
-                /* process command and prepare response */
-               /* process_request(request, response);*/
-                /* send response back to client */
-                send(clientSocket, response, strlen(response), 0);
-                printf("response sent to client.\n");
-                /* close connection if client sends exit */
-                if (strncmp(request, "EXIT", 4) == 0) {
-                        break;
-                }
-        }
+}
 
         /* receive message from client 
         memset(buffer, 0, BUFFER_SIZE);
