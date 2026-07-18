@@ -8,6 +8,11 @@ struct User {
         char username[30];
         char password[30];
         char role[20];
+	/*file permissions*/
+	 int canCreate;
+        int canWrite;
+        int canRead;
+        int canDelete;
 };
 /*SUBTASK: USER AUTHENTICATION*/
 /* checks username and password entered by user */
@@ -55,6 +60,12 @@ void create_file(struct User currentUser) {/*recieve current user*/
         FILE *file;
         char filename[50]; /*for file name*/
         printf("\n create hospital file \n");
+	        /* checks if current user is allowed to create files */
+        if (currentUser.canCreate == 0) {
+                printf("permission denied. you cannot create files.\n");
+                write_log(currentUser.username, "permission denied create file", "none");
+                return;
+        }
         printf("enter file name to create: ");
         scanf("%s", filename);
         file =fopen(filename, "w");
@@ -75,6 +86,12 @@ void write_file(struct User currentUser) {
         char filename[50];
         char text[300];
         printf("\n write hospital file\n");
+	        /* checks if current user is allowed to write files */
+        if (currentUser.canWrite == 0) {
+                printf("permission denied. you cannot write files.\n");
+                write_log(currentUser.username, "permission denied write file", "none");
+                return;
+        }
         printf("enter file name to write: ");
         scanf("%s", filename);
         file = fopen(filename, "a");
@@ -98,6 +115,12 @@ void read_file(struct User currentUser) {
         char filename[50];
         int ch; /* FOR STORING one character at a time*/
         printf("\n read hospital file\n");
+	        /* checks if current user is allowed to read files */
+        if (currentUser.canRead == 0) {
+                printf("permission denied. you cannot read files.\n");
+                write_log(currentUser.username, "permission denied read file", "none");
+                return;
+        }
         printf("enter file name to read: ");
         scanf("%s", filename);
         file = fopen(filename, "r");/*r enables read mode*/
@@ -119,6 +142,12 @@ void read_file(struct User currentUser) {
 void delete_file(struct User currentUser) {
         char filename[50];
         printf("\ndelete hospital file \n");
+	        /* checks if current user is allowed to delete files */
+        if (currentUser.canDelete == 0) {
+                printf("permission denied. you cannot delete files.\n");
+                write_log(currentUser.username, "permission denied delete file", "none");
+                return;
+        }
         printf("enter file name to delete: ");
         scanf("%s", filename);
         if (remove(filename) == 0) {
@@ -130,9 +159,10 @@ void delete_file(struct User currentUser) {
         }
 }
 int main(){
-        struct User users[MAX_USERS] = {{"admin", "admin123", "admin"},
-                {"doctor", "doctor123", "doctor"},
-                {"nurse", "nurse123", "nurse"}
+        struct User users[MAX_USERS] = {{"admin", "admin123", "admin",1,1,1,1},
+	/*permission 1=allowed, 0 =not allowed*/
+                {"doctor", "doctor123", "doctor",1,1,1,0},
+                {"nurse", "nurse123", "nurse",0,0,1,0}
         };
         struct User currentUser;
         int loggedIn;
