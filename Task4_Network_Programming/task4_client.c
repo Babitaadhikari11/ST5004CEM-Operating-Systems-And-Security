@@ -9,7 +9,7 @@
 int main() {
         int clientSocket;
         struct sockaddr_in serverAddress;
-        char message[BUFFER_SIZE];
+        char request[BUFFER_SIZE];
         char response[BUFFER_SIZE];
         /* create socket for client */
         clientSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -31,16 +31,41 @@ int main() {
                 return 1;
         }
         printf("connected to hospital server successfully.\n");
-        /* take request message from hospital staff */
-        printf("enter message for server: ");
-        fgets(message, BUFFER_SIZE, stdin);
-        /* send message to server */
-        send(clientSocket, message, strlen(message), 0);
-        printf("request sent to server.\n");
-        /* receive response from server */
-        memset(response, 0, BUFFER_SIZE);
-        recv(clientSocket, response, BUFFER_SIZE, 0);
-        printf("server response: %s\n", response);
+        printf("type HELP to see available commands.\n");
+
+        /* send commands until exit */
+
+        while (1) {
+
+                memset(request, 0, BUFFER_SIZE);
+
+                memset(response, 0, BUFFER_SIZE);
+
+                printf("\nenter command: ");
+
+                fgets(request, BUFFER_SIZE, stdin);
+
+                send(clientSocket, request, strlen(request), 0);
+
+                if (recv(clientSocket, response, BUFFER_SIZE, 0) <= 0) {
+
+                        printf("server disconnected.\n");
+
+                        break;
+
+                }
+
+                printf("server response: %s\n", response);
+
+                request[strcspn(request, "\n")] = '\0';
+
+                if (strncmp(request, "EXIT", 4) == 0) {
+
+                        break;
+
+                }
+
+        }
         /* close client socket */
         close(clientSocket);
         printf("client closed.\n");

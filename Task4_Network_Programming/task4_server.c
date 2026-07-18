@@ -22,6 +22,42 @@ struct Patient patients[TOTAL_PATIENTS] = {
         {102, "sita gurung", "fracture", "x-ray completed"},
         {103, "arjun kc", "breathing problem", "oxygen level test urgent"}
 };
+/*Authentication*/
+int check_login(char username[], char password[], char role[]) {
+
+        if (strcmp(username, "admin") == 0 &&
+
+            strcmp(password, "admin123") == 0) {
+
+                strcpy(role, "admin");
+
+                return 1;
+
+        }
+
+        if (strcmp(username, "doctor") == 0 &&
+
+            strcmp(password, "doctor123") == 0) {
+
+                strcpy(role, "doctor");
+
+                return 1;
+
+        }
+
+        if (strcmp(username, "nurse") == 0 &&
+
+            strcmp(password, "nurse123") == 0) {
+
+                strcpy(role, "nurse");
+
+                return 1;
+
+        }
+
+        return 0;
+
+}
 /* searches patient details using patient id */
 void find_patient(int id, char response[]) {
         int i;
@@ -54,27 +90,62 @@ void find_lab(int id, char response[]) {
         strcpy(response, "lab record not found for this patient id");
 }
 /* processes client command and prepares server response */
-void process_request(char request[], char response[]) {
+void process_request(char request[], char response[], int *loggedIn, char role[]) {
         int patientId;
+        char username[50];
+        char password[50];
         char alertMessage[BUFFER_SIZE];
-        /* show available commands */
-        if (strncmp(request, "HELP", 4) == 0) {
-                strcpy(response,
-                       "commands: PATIENT id, LAB id, BED, ALERT message, EXIT");
+
+        /* validates empty request */
+        if (strlen(request) == 0) {
+                strcpy(response, "empty request is not allowed");
         }
+
+        /* show available commands */
+        else if (strncmp(request, "HELP", 4) == 0) {
+                strcpy(response,
+                       "commands: LOGIN user pass, PATIENT id, LAB id, BED, ALERT message, EXIT");
+        }
+
+        /* handles login command */
+        else if (sscanf(request, "LOGIN %s %s", username, password) == 2) {
+                if (check_login(username, password, role) == 1) {
+                        *loggedIn = 1;
+                        sprintf(response, "login successful. role: %s", role);
+                } else {
+                        strcpy(response, "login failed. invalid username or password");
+                }
+        }
+
+        /* added: block hospital commands before login */
+        else if (*loggedIn == 0) {
+                strcpy(response, "please login first using LOGIN username password");
+        }
+
         /* handle patient information request */
         else if (sscanf(request, "PATIENT %d", &patientId) == 1) {
-                find_patient(patientId, response);
+                if (patientId <= 0) {
+                        strcpy(response, "invalid patient id");
+                } else {
+                        find_patient(patientId, response);
+                }
         }
+
         /* handle lab status request */
         else if (sscanf(request, "LAB %d", &patientId) == 1) {
-                find_lab(patientId, response);
+                if (patientId <= 0) {
+                        strcpy(response, "invalid patient id");
+                } else {
+                        find_lab(patientId, response);
+                }
         }
+
         /* handle bed availability request */
         else if (strncmp(request, "BED", 3) == 0) {
                 strcpy(response,
                        "beds available: emergency 4, icu 2, general 8");
         }
+
         /* handle emergency alert message */
         else if (sscanf(request, "ALERT %[^\n]", alertMessage) == 1) {
                 sprintf(response,
@@ -86,6 +157,7 @@ void process_request(char request[], char response[]) {
         else if (strncmp(request, "EXIT", 4) == 0) {
                 strcpy(response, "goodbye. connection closed");
         }
+
         /* handle invalid command */
         else {
                 strcpy(response,
@@ -95,12 +167,16 @@ void process_request(char request[], char response[]) {
 int main() {
         int serverSocket;
         int clientSocket;
+	/* added: stores login status of connected client */
+        int loggedIn = 0;
         struct sockaddr_in serverAddress;
         struct sockaddr_in clientAddress;
         socklen_t clientLength;
        /* char buffer[BUFFER_SIZE];*/
 	char request[BUFFER_SIZE];
         char response[BUFFER_SIZE];
+	/* added: stores role after successful login */
+        char role[30] = "guest";
         /* create socket for server */
         serverSocket = socket(AF_INET, SOCK_STREAM, 0);
         if (serverSocket < 0) {
@@ -161,8 +237,11 @@ int main() {
                 /* remove new line from input */
                 request[strcspn(request, "\n")] = '\0';
                 printf("client request: %s\n", request);
+		/* added: process request with login status and role */
+
+                process_request(request, response, &loggedIn, role);
                 /* process command and prepare response */
-                process_request(request, response);
+               /* process_request(request, response);*/
                 /* send response back to client */
                 send(clientSocket, response, strlen(response), 0);
                 printf("response sent to client.\n");
