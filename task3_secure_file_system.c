@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <stdlib.h>
 #define MAX_USERS 3
 /* stores login details and hospital user role */
 struct User {
@@ -160,57 +161,80 @@ void delete_file(struct User currentUser) {
                 write_log(currentUser.username, "failed to delete file", filename);
         }
 }
-/*SUB TASK: ENCRYTPION.DECRITPION*/
-/* encrypts or decrypts a hospital file using simple xor method */
-void encrypt_decrypt_file(struct User currentUser) {
-        FILE *file;
+/* SUB TASK: ENCRYPTION */
+/* encrypts hospital file using openssl aes-256-cbc */
+void encrypt_file(struct User currentUser) {
         char filename[50];
-        char data[1000];
-        int key = 7; /*KEY USED FOR ENCRYption and decryption*/
-        int i = 0;/*tracking current position*/
-        int ch;
-        printf("\n encrypt or decrypt hospital file \n");
-        /* checks if current user is allowed to encrypt or decrypt files */
+        char command[300];
+        char password[50];
+
+        printf("\n encrypt hospital file \n");
+
         if (currentUser.canEncrypt == 0) {
-                printf("permission denied. you cannot encrypt or decrypt files.\n");
+                printf("permission denied. you cannot encrypt files.\n");
                 write_log(currentUser.username,
-                          "permission denied encrypt or decrypt file",
+                          "permission denied encrypt file",
                           "none");
                 return;
         }
-        printf("enter file name to encrypt or decrypt: ");
+
+        printf("enter file name to encrypt: ");
         scanf("%s", filename);
-        file = fopen(filename, "r");
-        if (file == NULL) {
-                printf("file could not be opened or does not exist.\n");
-                write_log(currentUser.username,
-                          "failed to encrypt or decrypt file",
-                          filename);
-                return;
+
+        printf("enter encryption password: ");
+        scanf("%s", password);
+
+        sprintf(command,
+                "openssl enc -aes-256-cbc -salt -pbkdf2 -in %s -out %s.enc -pass pass:%s",
+                filename, filename, password);
+
+        if (system(command) == 0) {
+                printf("file encrypted successfully.\n");
+                printf("encrypted file saved as: %s.enc\n", filename);
+                write_log(currentUser.username, "encrypted file", filename);
+        } else {
+                printf("file encryption failed.\n");
+                write_log(currentUser.username, "failed to encrypt file", filename);
         }
-        /* reads file and changes each character using xor key */
-        while ((ch = fgetc(file)) != EOF && i < 999) {
-                data[i] = ch ^ key;
-                i++;
-        }
-        data[i] = '\0';
-        fclose(file);
-        file = fopen(filename, "w");
-        if (file == NULL) {
-                printf("file could not be opened for saving.\n");
-                write_log(currentUser.username,
-                          "failed to save encrypted or decrypted file",
-                          filename);
-                return;
-        }
-        fprintf(file, "%s", data);
-        fclose(file);
-        printf("file encryption or decryption completed.\n");
-        write_log(currentUser.username,
-                  "encrypted or decrypted file",
-                  filename);
 }
 
+
+/* SUB TASK: DECRYPTION */
+/* decrypts hospital file using openssl aes-256-cbc */
+void decrypt_file(struct User currentUser) {
+        char filename[50];
+        char command[300];
+        char password[50];
+
+        printf("\n decrypt hospital file \n");
+
+        if (currentUser.canEncrypt == 0) {
+                printf("permission denied. you cannot decrypt files.\n");
+                write_log(currentUser.username,
+                          "permission denied decrypt file",
+                          "none");
+                return;
+        }
+
+        printf("enter encrypted file name to decrypt: ");
+        scanf("%s", filename);
+
+        printf("enter decryption password: ");
+        scanf("%s", password);
+
+        sprintf(command,
+                "openssl enc -d -aes-256-cbc -pbkdf2 -in %s -out decrypted_%s -pass pass:%s",
+                filename, filename, password);
+
+        if (system(command) == 0) {
+                printf("file decrypted successfully.\n");
+                printf("decrypted file saved as: decrypted_%s\n", filename);
+                write_log(currentUser.username, "decrypted file", filename);
+        } else {
+                printf("file decryption failed. wrong password or file error.\n");
+                write_log(currentUser.username, "failed to decrypt file", filename);
+        }
+}
 int main(){
 /*encryptiiona decription added for doctor, nurse and admin*/
         struct User users[MAX_USERS] = {{"admin", "admin123", "admin",1,1,1,1,1},
@@ -236,17 +260,7 @@ int main(){
 	read_file(currentUser);
 	delete_file(currentUser);
 	/* allows logged in user to encrypt or decrypt a hospital file */
-	encrypt_decrypt_file(currentUser);
-	/* read file after encryption */
-
-read_file(currentUser);
-
-/* decrypt the same hospital file second time */
-
-encrypt_decrypt_file(currentUser);
-
-/* read file again after decryption */
-
-read_file(currentUser);
+	encrypt_file(currentUser);
+decrypt_file(currentUser);
         return 0;
 }
