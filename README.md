@@ -1,4 +1,4 @@
-Copy everything below and paste it into your README.md file:
+
 
 # ST5003CEM Advanced Algorithms Coursework
 This repository contains the implementation and evaluation of advanced data structures and algorithms completed for the **ST5003CEM Advanced Algorithms** coursework.
